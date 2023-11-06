@@ -1,13 +1,15 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
+import axios from "axios";
+import {API_URL} from "./constants";
 
 function App() {
 
     const [notes, setNotes] = useState([]);
-    const [newNote, setNewNote] = useState({text: "", username: ""});
+    const [newNote, setNewNote] = useState({note_text: "", username: ""});
 
     const [users, setUsers] = useState([]);
-    const [newUser, setNewUser] = useState({username: "", password: ""});
-    const [selectedUser, setSelectedUser] = useState({username: "", password: ""});
+    const [newUser, setNewUser] = useState({pk: "", username: "", password: ""});
+    const [selectedUser, setSelectedUser] = useState({pk: "", username: "", password: ""});
 
     const onUserChange = e => {
         const {name, value} = e.target;
@@ -33,24 +35,46 @@ function App() {
     }
 
     const addNote = () => {
-        if (newNote.text.trim() !== '' && newNote.username.trim() !== '') {
+        if (newNote.note_text.trim() !== '' && newNote.username.trim() !== '') {
+            console.log("text: " + newNote.note_text + ", username: " + newNote.username + ", owner: " + selectedUser.pk);
+            axios.post(API_URL + "create-note", {"note_text": newNote.note_text, "owner": selectedUser.pk});
             setNotes([...notes, newNote]);
-            setNewNote({text: "", username: newNote.username});
+            setNewNote({note_text: "", username: newNote.username});
         }
     };
 
     const addUser = () => {
         if (newUser.username.trim() !== '' && newUser.password.trim() !== '') {
+            axios.post(API_URL + "create-user", newUser);
             setUsers([...users, newUser]);
             setNewUser({username: "", password: ""});
         }
     };
 
-    const removeNote = (index) => {
-        const updatedNotes = [...notes];
-        updatedNotes.splice(index, 1);
-        setNotes(updatedNotes);
-    };
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const usersResponse = await axios.get(API_URL + "users");
+                const notesResponse = await axios.get(API_URL + "notes");
+
+                // Assuming both requests were successful
+                const usersData = usersResponse.data;
+                const notesData = notesResponse.data;
+
+                const notesWithUsernames = notesData.map((note) => {
+                    const user = usersData.find((user) => user.pk === note.owner);
+                    return {...note, username: user.username};
+                });
+
+                setUsers(usersData);
+                setNotes(notesWithUsernames);
+            } catch (error) {
+                console.error('Error fetching data:', error);
+            }
+        };
+
+        fetchData();
+    }, []);
 
     return (
         <div>
@@ -76,8 +100,8 @@ function App() {
                 <input
                     type="text"
                     placeholder="Add a new note"
-                    name="text"
-                    value={newNote.text}
+                    name="note_text"
+                    value={newNote.note_text}
                     onChange={(e) => onNoteChange(e)}
                 />
                 <select value={selectedUser.username} onChange={(e) => onUserSelect(e.target.value)}>
@@ -97,11 +121,10 @@ function App() {
                         <div>
                             <span>Username: </span>
                             {note.username}
-                            <br />
+                            <br/>
                             <span>Note: </span>
-                            {note.text}
+                            {note.note_text}
                         </div>
-                        <button onClick={() => removeNote(index)}>Delete</button>
                     </li>
                 ))}
             </ul>
