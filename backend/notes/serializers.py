@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from .models import Note
+from .models import Note, User
+
 
 class NoteSerializer(serializers.ModelSerializer):
 
@@ -7,8 +8,8 @@ class NoteSerializer(serializers.ModelSerializer):
         model = Note
         fields = ("pk", "note_text", "pub_date", "owner")
 
-class OwnerSerializer(serializers.ModelSerializer):
+class UserSerializer(serializers.ModelSerializer):
 
         class Meta:
-            model = Note
+            model = User
             fields = ("pk", "username", "password")
